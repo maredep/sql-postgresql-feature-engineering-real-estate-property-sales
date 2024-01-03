@@ -1,0 +1,32 @@
+--Perform Ordinal or Label encoding on one or more Categorical Variables in the dataset
+--OverallQual, OverallCond are categorical variables that exhibit hierarchical or ordinal relationship.
+--In this case, applying Ordinal Encoding is suitable for these variables.
+SELECT
+    CASE "OverallQual"
+        WHEN 'Very Poor' THEN 1
+        WHEN 'Poor' THEN 2
+        WHEN 'Below Average' THEN 3
+	WHEN 'Fair' THEN 4
+	WHEN 'Average' THEN 5
+	WHEN 'Above Average' THEN 6
+	WHEN 'Good' THEN 7
+	WHEN 'Very Good' THEN 8
+	WHEN 'Excellent' THEN 9
+	WHEN 'Very Excellent' THEN 10
+        ELSE 0 -- Handle unknown or missing values
+    END AS "Ordinal_OverallQual",
+    
+    CASE "OverallCond"
+        WHEN 'Very Poor' THEN 1
+        WHEN 'Poor' THEN 2
+        WHEN 'Below Average' THEN 3
+	WHEN 'Fair' THEN 4
+	WHEN 'Average' THEN 5
+	WHEN 'Above Average' THEN 6
+	WHEN 'Good' THEN 7
+	WHEN 'Very Good' THEN 8
+	WHEN 'Excellent' THEN 9
+        ELSE 0 -- Handle unknown or missing values
+    END AS "Ordinal_OverallCond"
+FROM
+    property_sales;

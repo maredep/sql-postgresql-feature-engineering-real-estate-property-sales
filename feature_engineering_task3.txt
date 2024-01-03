@@ -1,0 +1,124 @@
+--Perform Mean encoding on one or more Categorical Variables in the dataset (hint: you may want to use OVER() and PARTITION() commands)
+--"MSSubClass", "BldgType", "HouseStyle" are categorical variables used for the Mean Encoding
+CREATE FUNCTION conditional_update() RETURNS void AS
+$$
+BEGIN
+  PERFORM COLUMN_NAME FROM information_schema.columns WHERE TABLE_NAME = 'property_sales' AND COLUMN_NAME = '"Target"';
+  IF FOUND THEN
+    --DO NOTHING;
+	ELSE 
+	ALTER TABLE property_sales
+	ADD COLUMN IF NOT EXISTS "Target" INT;
+
+	WITH CTE AS (
+  		SELECT *, CAST(RANDOM() AS INT) AS "Target2" FROM property_sales
+	)
+
+	UPDATE property_sales
+	SET "Target" = CTE."Target2"
+	FROM CTE
+	WHERE property_sales."Id" = CTE."Id";
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+SELECT conditional_update();
+DROP FUNCTION conditional_update();
+
+SELECT
+    CASE "MSSubClass"
+        WHEN '1-1/2 STORY - UNFINISHED ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY - UNFINISHED ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY - UNFINISHED ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN '1-1/2 STORY FINISHED ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY FINISHED ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY FINISHED ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN '1-STORY 1945 & OLDER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY 1945 & OLDER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY 1945 & OLDER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY 1946 & NEWER ALL STYLES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY 1946 & NEWER ALL STYLES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY 1946 & NEWER ALL STYLES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY W/FINISHED ATTIC ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY W/FINISHED ATTIC ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY W/FINISHED ATTIC ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2 FAMILY CONVERSION - ALL STYLES AND AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2 FAMILY CONVERSION - ALL STYLES AND AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2 FAMILY CONVERSION - ALL STYLES AND AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-1/2 STORY ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-1/2 STORY ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-1/2 STORY ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY 1945 & OLDER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY 1945 & OLDER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY 1945 & OLDER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY PUD - 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY PUD - 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY PUD - 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'DUPLEX - ALL STYLES AND AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'DUPLEX - ALL STYLES AND AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'DUPLEX - ALL STYLES AND AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'SPLIT FOYER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'SPLIT FOYER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'SPLIT FOYER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'SPLIT OR MULTI-LEVEL' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'SPLIT OR MULTI-LEVEL' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'SPLIT OR MULTI-LEVEL' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_MSSubClass",
+	
+	CASE "BldgType"
+        WHEN 'Duplex' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Duplex' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Duplex' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Single-family Detached' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Single-family Detached' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Single-family Detached' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Townhouse End Unit' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Townhouse End Unit' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Townhouse End Unit' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Townhouse Inside Unit' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Townhouse Inside Unit' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Townhouse Inside Unit' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Two-family Conversion; originally built as one-family dwelling' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Two-family Conversion; originally built as one-family dwelling' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Two-family Conversion; originally built as one-family dwelling' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_BldgType",
+	
+	CASE "HouseStyle"
+        WHEN 'One and one-half story: 2nd level finished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level finished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level finished' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'One and one-half story: 2nd level unfinished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level unfinished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level unfinished' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'One story' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One story' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One story' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Split Foyer' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Split Foyer' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Split Foyer' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Split Level' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Split Level' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Split Level' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two and one-half story: 2nd level finished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level finished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level finished' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two and one-half story: 2nd level unfinished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level unfinished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level unfinished' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two story' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two story' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two story' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_HouseStyle"
+FROM
+    property_sales;

@@ -1,0 +1,10 @@
+--Perform Standardization on all the numeric variables to rescale these variables (you may add new columns for this)
+--X' = (X - M) / STANDARD DEVIATION
+SELECT 
+("LotFrontage" - AVG("LotFrontage") OVER())/STDDEV_SAMP("LotFrontage") OVER() AS "Std_LotFrontage",
+("LotArea" - AVG("LotArea") OVER())/STDDEV_SAMP("LotArea") OVER() AS "Std_LotArea",
+("GarageArea" - AVG("GarageArea") OVER())/STDDEV_SAMP("GarageArea") OVER() AS "Std_GarageArea",
+("GrLivArea" - AVG("GrLivArea") OVER())/STDDEV_SAMP("GrLivArea") OVER() AS "Std_GrLivArea",
+("TotalBsmtSF" - AVG("TotalBsmtSF") OVER())/STDDEV_SAMP("TotalBsmtSF") OVER() AS "Std_TotalBsmtSF",
+("SalePrice" - AVG("SalePrice") OVER())/STDDEV_SAMP("SalePrice") OVER() AS "Std_SalePrice"
+FROM property_sales;

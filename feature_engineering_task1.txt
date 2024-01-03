@@ -1,0 +1,17 @@
+--Perform One-Hot Encoding on the variable on one or more Categorical Variables in the dataset
+--LotShape, LandContour, and LandSlope are categorical variables that do not exhibit a hierarchical or ordinal relationship.
+--In this case, applying One-Hot Encoding is a suitable approach for these variables.
+SELECT
+	CASE WHEN "LotShape" = 'Irregular' THEN 1 ELSE 0 END AS "Irregular_OHE",
+	CASE WHEN "LotShape" = 'Moderately Irregular' THEN 1 ELSE 0 END AS "Moderately Irregular_OHE",
+	CASE WHEN "LotShape" = 'Regular' THEN 1 ELSE 0 END AS "Regular_OHE",
+	CASE WHEN "LotShape" = 'Slightly irregular' THEN 1 ELSE 0 END AS "Slightly irregular_OHE",
+    	CASE WHEN "LandContour" = 'Near Flat/Level' THEN 1 ELSE 0 END AS "Near Flat_OHE",
+    	CASE WHEN "LandContour" = 'Banked - Quick and significant rise from street grade to building' THEN 1 ELSE 0 END AS "Banked_OHE",
+    	CASE WHEN "LandContour" = 'Depression' THEN 1 ELSE 0 END AS "Depression_OHE",
+	CASE WHEN "LandContour" = 'Hillside' THEN 1 ELSE 0 END AS "Hillside_OHE",
+	CASE WHEN "LandSlope" = 'Gentle slope' THEN 1 ELSE 0 END AS "Gentle slope_OHE",
+	CASE WHEN "LandSlope" = 'Moderate Slope' THEN 1 ELSE 0 END AS "Moderate Slope_OHE",
+	CASE WHEN "LandSlope" = 'Severe Slope' THEN 1 ELSE 0 END AS "Severe Slope_OHE"
+FROM
+    property_sales;

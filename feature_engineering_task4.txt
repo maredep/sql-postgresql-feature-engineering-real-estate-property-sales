@@ -1,0 +1,10 @@
+--Perform Mean Normalization on all the numeric variables to rescale these variables (you may add new columns for this)
+--X' = (X - mean(X)) / (max(X) - min(X))
+SELECT 
+("LotFrontage" - AVG("LotFrontage") OVER())/(max("LotFrontage") OVER() - min("LotFrontage") OVER()) AS "MeanNorm_LotFrontage",
+("LotArea" - AVG("LotArea") OVER())/(max("LotArea") OVER() - min("LotArea") OVER()) AS "MeanNorm_LotArea",
+("GarageArea" - AVG("GarageArea") OVER())/(max("GarageArea") OVER() - min("GarageArea") OVER()) AS "MeanNorm_GarageArea",
+("GrLivArea" - AVG("GrLivArea") OVER())/(max("GrLivArea") OVER() - min("GrLivArea") OVER()) AS "MeanNorm_GrLivArea",
+("TotalBsmtSF" - AVG("TotalBsmtSF") OVER())/(max("TotalBsmtSF") OVER() - min("TotalBsmtSF") OVER()) AS "MeanNorm_TotalBsmtSF",
+("SalePrice" - AVG("SalePrice") OVER())/(max("SalePrice") OVER() - min("SalePrice") OVER()) AS "MeanNorm_SalePrice"
+FROM property_sales;

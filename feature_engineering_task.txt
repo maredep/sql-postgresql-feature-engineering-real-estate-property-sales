@@ -1,0 +1,279 @@
+-- Create new table as property_sales
+CREATE TABLE public.property_sales 
+(
+	"Id" integer,
+	"MSSubClass" character varying(150),
+	"LotShape" character varying(150),
+	"LandContour" character varying(150),
+	"LandSlope" character varying(150),
+	"BldgType" character varying(150),
+	"HouseStyle" character varying(150),
+	"OverallQual" character varying(150),
+	"OverallCond" character varying(150),
+	"LotFrontage" float8,
+	"LotArea" float8,
+	"GarageArea" float8,
+	"GrLivArea" float8,
+	"TotalBsmtSF" float8,
+	"SalePrice" float8,
+	CONSTRAINT property_key PRIMARY KEY ("Id")
+);
+
+--Load data from property_sales.csv to the new table property_sales
+COPY property_sales
+(
+	"Id",
+	"MSSubClass",
+	"LotShape",
+	"LandContour",
+	"LandSlope",
+	"BldgType",
+	"HouseStyle",
+	"OverallQual",
+	"OverallCond",
+	"LotFrontage",
+	"LotArea",
+	"GarageArea",
+	"GrLivArea",
+	"TotalBsmtSF",
+	"SalePrice"
+)
+FROM 'C:\property_sales.csv'
+DELIMITER ','
+CSV NULL 'NA' HEADER;
+
+--Checking if data properly loaded, unwanted characters and spaces, missing values
+SELECT * FROM property_sales;
+
+--Checking for duplicates
+SELECT *, COUNT(*) AS Duplicate FROM property_sales 
+GROUP BY
+	"Id",
+	"MSSubClass",
+	"LotShape",
+	"LandContour",
+	"LandSlope",
+	"BldgType",
+	"HouseStyle",
+	"OverallQual",
+	"OverallCond",
+	"LotFrontage",
+	"LotArea",
+	"GarageArea",
+	"GrLivArea",
+	"TotalBsmtSF",
+	"SalePrice"
+;
+
+--After checking, no duplicates, no unwanted characters and spaces found. Only missing values.
+--For missing values, you can remove or imputate. I use imputation method by replacing missing values with the mean of the series.
+WITH CTE AS (
+  --Changing missing values to the mean
+  SELECT *, COALESCE("LotFrontage", AVG("LotFrontage") OVER()) AS "LotFrontage2" FROM new_property_sales
+)
+UPDATE property_sales
+SET "LotFrontage" = CTE."LotFrontage2"
+FROM CTE
+WHERE property_sales."Id" = CTE."Id";
+
+--Creating a column if not exists named Target with random numbers of 0's and 1's for Mean Encoding 
+CREATE FUNCTION conditional_update() RETURNS void AS
+$$
+BEGIN
+  PERFORM COLUMN_NAME FROM information_schema.columns WHERE TABLE_NAME = 'property_sales' AND COLUMN_NAME = '"Target"';
+  IF FOUND THEN
+    --DO NOTHING;
+	ELSE 
+	ALTER TABLE property_sales
+	ADD COLUMN IF NOT EXISTS "Target" INT;
+
+	WITH CTE AS (
+  		SELECT *, CAST(RANDOM() AS INT) AS "Target2" FROM property_sales
+	)
+
+	UPDATE property_sales
+	SET "Target" = CTE."Target2"
+	FROM CTE
+	WHERE property_sales."Id" = CTE."Id";
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+SELECT conditional_update();
+DROP FUNCTION conditional_update();
+
+SELECT *,
+--Feature Engineering Task 1
+--Perform One-Hot Encoding on the variable on one or more Categorical Variables in the dataset
+--LotShape, LandContour, and LandSlope are categorical variables that do not exhibit a hierarchical or ordinal relationship.
+--In this case, applying One-Hot Encoding is a suitable approach for these variables.
+	CASE WHEN "LotShape" = 'Irregular' THEN 1 ELSE 0 END AS "Irregular_OHE",
+	CASE WHEN "LotShape" = 'Moderately Irregular' THEN 1 ELSE 0 END AS "Moderately Irregular_OHE",
+	CASE WHEN "LotShape" = 'Regular' THEN 1 ELSE 0 END AS "Regular_OHE",
+	CASE WHEN "LotShape" = 'Slightly irregular' THEN 1 ELSE 0 END AS "Slightly irregular_OHE",
+    	CASE WHEN "LandContour" = 'Near Flat/Level' THEN 1 ELSE 0 END AS "Near Flat_OHE",
+    	CASE WHEN "LandContour" = 'Banked - Quick and significant rise from street grade to building' THEN 1 ELSE 0 END AS "Banked_OHE",
+    	CASE WHEN "LandContour" = 'Depression' THEN 1 ELSE 0 END AS "Depression_OHE",
+	CASE WHEN "LandContour" = 'Hillside' THEN 1 ELSE 0 END AS "Hillside_OHE",
+	CASE WHEN "LandSlope" = 'Gentle slope' THEN 1 ELSE 0 END AS "Gentle slope_OHE",
+	CASE WHEN "LandSlope" = 'Moderate Slope' THEN 1 ELSE 0 END AS "Moderate Slope_OHE",
+	CASE WHEN "LandSlope" = 'Severe Slope' THEN 1 ELSE 0 END AS "Severe Slope_OHE",
+
+--Feature Engineering Task 2
+--Perform Ordinal or Label encoding on one or more Categorical Variables in the dataset
+--OverallQual, OverallCond are categorical variables that exhibit hierarchical or ordinal relationship.
+--In this case, applying Ordinal Encoding is suitable for these variables.
+    CASE "OverallQual"
+        WHEN 'Very Poor' THEN 1
+        WHEN 'Poor' THEN 2
+        WHEN 'Below Average' THEN 3
+	WHEN 'Fair' THEN 4
+	WHEN 'Average' THEN 5
+	WHEN 'Above Average' THEN 6
+	WHEN 'Good' THEN 7
+	WHEN 'Very Good' THEN 8
+	WHEN 'Excellent' THEN 9
+	WHEN 'Very Excellent' THEN 10
+        ELSE 0 -- Handle unknown or missing values
+    END AS "Ordinal_OverallQual",
+    
+    CASE "OverallCond"
+        WHEN 'Very Poor' THEN 1
+        WHEN 'Poor' THEN 2
+        WHEN 'Below Average' THEN 3
+	WHEN 'Fair' THEN 4
+	WHEN 'Average' THEN 5
+	WHEN 'Above Average' THEN 6
+	WHEN 'Good' THEN 7
+	WHEN 'Very Good' THEN 8
+	WHEN 'Excellent' THEN 9
+        ELSE 0 -- Handle unknown or missing values
+    END AS "Ordinal_OverallCond",
+
+--Feature Engineering Task 3
+--Perform Mean encoding on one or more Categorical Variables in the dataset (hint: you may want to use OVER() and PARTITION() commands)
+--"MSSubClass", "BldgType", "HouseStyle" are categorical variables used for the Mean Encoding
+
+    CASE "MSSubClass"
+        WHEN '1-1/2 STORY - UNFINISHED ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY - UNFINISHED ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY - UNFINISHED ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN '1-1/2 STORY FINISHED ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY FINISHED ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-1/2 STORY FINISHED ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN '1-STORY 1945 & OLDER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY 1945 & OLDER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY 1945 & OLDER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY 1946 & NEWER ALL STYLES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY 1946 & NEWER ALL STYLES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY 1946 & NEWER ALL STYLES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) 
+
+/
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY PUD (Planned Unit Development) - 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '1-STORY W/FINISHED ATTIC ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '1-STORY W/FINISHED ATTIC ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '1-STORY W/FINISHED ATTIC ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2 FAMILY CONVERSION - ALL STYLES AND AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2 FAMILY CONVERSION - ALL STYLES AND AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2 FAMILY CONVERSION - ALL STYLES AND AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-1/2 STORY ALL AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-1/2 STORY ALL AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-1/2 STORY ALL AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY 1945 & OLDER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY 1945 & OLDER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY 1945 & OLDER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN '2-STORY PUD - 1946 & NEWER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = '2-STORY PUD - 1946 & NEWER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = '2-STORY PUD - 1946 & NEWER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'DUPLEX - ALL STYLES AND AGES' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'DUPLEX - ALL STYLES AND AGES' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'DUPLEX - ALL STYLES AND AGES' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'PUD - MULTILEVEL - INCL SPLIT LEV/FOYER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'SPLIT FOYER' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'SPLIT FOYER' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'SPLIT FOYER' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'SPLIT OR MULTI-LEVEL' THEN
+            CAST(SUM(CASE WHEN "MSSubClass" = 'SPLIT OR MULTI-LEVEL' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "MSSubClass" = 'SPLIT OR MULTI-LEVEL' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_MSSubClass",
+	
+	CASE "BldgType"
+        WHEN 'Duplex' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Duplex' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Duplex' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Single-family Detached' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Single-family Detached' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Single-family Detached' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Townhouse End Unit' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Townhouse End Unit' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Townhouse End Unit' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Townhouse Inside Unit' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Townhouse Inside Unit' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Townhouse Inside Unit' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'Two-family Conversion; originally built as one-family dwelling' THEN
+            CAST(SUM(CASE WHEN "BldgType" = 'Two-family Conversion; originally built as one-family dwelling' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS 
+
+DECIMAL) /
+            NULLIF(SUM(CASE WHEN "BldgType" = 'Two-family Conversion; originally built as one-family dwelling' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_BldgType",
+	
+	CASE "HouseStyle"
+        WHEN 'One and one-half story: 2nd level finished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level finished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level finished' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'One and one-half story: 2nd level unfinished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level unfinished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One and one-half story: 2nd level unfinished' THEN 1 ELSE 0 END) OVER(), 0)
+        WHEN 'One story' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'One story' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'One story' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Split Foyer' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Split Foyer' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Split Foyer' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Split Level' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Split Level' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Split Level' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two and one-half story: 2nd level finished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level finished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level finished' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two and one-half story: 2nd level unfinished' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level unfinished' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two and one-half story: 2nd level unfinished' THEN 1 ELSE 0 END) OVER(), 0)
+		WHEN 'Two story' THEN
+            CAST(SUM(CASE WHEN "HouseStyle" = 'Two story' AND "Target" = 1 THEN 1 ELSE 0 END) OVER() AS DECIMAL) /
+            NULLIF(SUM(CASE WHEN "HouseStyle" = 'Two story' THEN 1 ELSE 0 END) OVER(), 0)
+        ELSE 0 -- Handle unknown or missing values
+    END AS "MeanEncoding_HouseStyle",
+
+--Feature Engineering Task 4
+--Perform Mean Normalization on all the numeric variables to rescale these variables (you may add new columns for this)
+--X' = (X - mean(X)) / (max(X) - min(X))
+
+("LotFrontage" - AVG("LotFrontage") OVER())/(max("LotFrontage") OVER() - min("LotFrontage") OVER()) AS "MeanNorm_LotFrontage",
+("LotArea" - AVG("LotArea") OVER())/(max("LotArea") OVER() - min("LotArea") OVER()) AS "MeanNorm_LotArea",
+("GarageArea" - AVG("GarageArea") OVER())/(max("GarageArea") OVER() - min("GarageArea") OVER()) AS "MeanNorm_GarageArea",
+("GrLivArea" - AVG("GrLivArea") OVER())/(max("GrLivArea") OVER() - min("GrLivArea") OVER()) AS "MeanNorm_GrLivArea",
+("TotalBsmtSF" - AVG("TotalBsmtSF") OVER())/(max("TotalBsmtSF") OVER() - min("TotalBsmtSF") OVER()) AS "MeanNorm_TotalBsmtSF",
+("SalePrice" - AVG("SalePrice") OVER())/(max("SalePrice") OVER() - min("SalePrice") OVER()) AS "MeanNorm_SalePrice",
+
+--Feature Engineering Task 5
+--Perform Standardization on all the numeric variables to rescale these variables (you may add new columns for this)
+--X' = (X - M) / STANDARD DEVIATION 
+("LotFrontage" - AVG("LotFrontage") OVER())/STDDEV_SAMP("LotFrontage") OVER() AS "Std_LotFrontage",
+("LotArea" - AVG("LotArea") OVER())/STDDEV_SAMP("LotArea") OVER() AS "Std_LotArea",
+("GarageArea" - AVG("GarageArea") OVER())/STDDEV_SAMP("GarageArea") OVER() AS "Std_GarageArea",
+("GrLivArea" - AVG("GrLivArea") OVER())/STDDEV_SAMP("GrLivArea") OVER() AS "Std_GrLivArea",
+("TotalBsmtSF" - AVG("TotalBsmtSF") OVER())/STDDEV_SAMP("TotalBsmtSF") OVER() AS "Std_TotalBsmtSF",
+("SalePrice" - AVG("SalePrice") OVER())/STDDEV_SAMP("SalePrice") OVER() AS "Std_SalePrice"
+
+FROM
+    property_sales
+ORDER BY "Id" ASC;
